@@ -1,0 +1,19 @@
+[2026-04-02T08:15:11.748+0000] {local_task_job_runner.py:123} INFO - ::group::Pre task execution logs
+[2026-04-02T08:15:11.777+0000] {taskinstance.py:2612} INFO - Dependencies all met for dep_context=non-requeueable deps ti=<TaskInstance: hello_world.say_goodbye manual__2026-04-02T08:15:09.674285+00:00 [queued]>
+[2026-04-02T08:15:11.787+0000] {taskinstance.py:2612} INFO - Dependencies all met for dep_context=requeueable deps ti=<TaskInstance: hello_world.say_goodbye manual__2026-04-02T08:15:09.674285+00:00 [queued]>
+[2026-04-02T08:15:11.787+0000] {taskinstance.py:2865} INFO - Starting attempt 1 of 1
+[2026-04-02T08:15:11.801+0000] {taskinstance.py:2888} INFO - Executing <Task(PythonOperator): say_goodbye> on 2026-04-02 08:15:09.674285+00:00
+[2026-04-02T08:15:11.816+0000] {logging_mixin.py:190} WARNING - /home/airflow/.local/lib/python3.12/site-packages/airflow/task/task_runner/standard_task_runner.py:70 DeprecationWarning: This process (pid=225) is multi-threaded, use of fork() may lead to deadlocks in the child.
+[2026-04-02T08:15:11.813+0000] {standard_task_runner.py:104} INFO - Running: ['airflow', 'tasks', 'run', 'hello_world', 'say_goodbye', 'manual__2026-04-02T08:15:09.674285+00:00', '--job-id', '7', '--raw', '--subdir', 'DAGS_FOLDER/hello_world.py', '--cfg-path', '/tmp/tmpu0rl3jmw']
+[2026-04-02T08:15:11.817+0000] {standard_task_runner.py:72} INFO - Started process 227 to run task
+[2026-04-02T08:15:11.817+0000] {standard_task_runner.py:105} INFO - Job 7: Subtask say_goodbye
+[2026-04-02T08:15:11.878+0000] {task_command.py:467} INFO - Running <TaskInstance: hello_world.say_goodbye manual__2026-04-02T08:15:09.674285+00:00 [running]> on host 93ccef24966a
+[2026-04-02T08:15:11.980+0000] {taskinstance.py:3131} INFO - Exporting env vars: AIRFLOW_CTX_DAG_OWNER='airflow' AIRFLOW_CTX_DAG_ID='hello_world' AIRFLOW_CTX_TASK_ID='say_goodbye' AIRFLOW_CTX_EXECUTION_DATE='2026-04-02T08:15:09.674285+00:00' AIRFLOW_CTX_TRY_NUMBER='1' AIRFLOW_CTX_DAG_RUN_ID='manual__2026-04-02T08:15:09.674285+00:00'
+[2026-04-02T08:15:11.981+0000] {taskinstance.py:731} INFO - ::endgroup::
+[2026-04-02T08:15:11.999+0000] {logging_mixin.py:190} INFO - Goodbye, World!
+[2026-04-02T08:15:11.999+0000] {python.py:240} INFO - Done. Returned value was: None
+[2026-04-02T08:15:12.012+0000] {taskinstance.py:340} INFO - ::group::Post task execution logs
+[2026-04-02T08:15:12.013+0000] {taskinstance.py:352} INFO - Marking task as SUCCESS. dag_id=hello_world, task_id=say_goodbye, run_id=manual__2026-04-02T08:15:09.674285+00:00, execution_date=20260402T081509, start_date=20260402T081511, end_date=20260402T081512
+[2026-04-02T08:15:12.033+0000] {local_task_job_runner.py:266} INFO - Task exited with return code 0
+[2026-04-02T08:15:12.055+0000] {taskinstance.py:3900} INFO - 0 downstream tasks scheduled from follow-on schedule check
+[2026-04-02T08:15:12.057+0000] {local_task_job_runner.py:245} INFO - ::endgroup::

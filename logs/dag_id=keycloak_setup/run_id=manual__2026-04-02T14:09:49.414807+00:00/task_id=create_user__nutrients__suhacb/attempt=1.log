@@ -1,0 +1,20 @@
+[2026-04-02T14:09:55.492+0000] {local_task_job_runner.py:123} INFO - ::group::Pre task execution logs
+[2026-04-02T14:09:55.556+0000] {taskinstance.py:2612} INFO - Dependencies all met for dep_context=non-requeueable deps ti=<TaskInstance: keycloak_setup.create_user__nutrients__suhacb manual__2026-04-02T14:09:49.414807+00:00 [queued]>
+[2026-04-02T14:09:55.627+0000] {taskinstance.py:2612} INFO - Dependencies all met for dep_context=requeueable deps ti=<TaskInstance: keycloak_setup.create_user__nutrients__suhacb manual__2026-04-02T14:09:49.414807+00:00 [queued]>
+[2026-04-02T14:09:55.628+0000] {taskinstance.py:2865} INFO - Starting attempt 1 of 2
+[2026-04-02T14:09:55.752+0000] {taskinstance.py:2888} INFO - Executing <Task(PythonOperator): create_user__nutrients__suhacb> on 2026-04-02 14:09:49.414807+00:00
+[2026-04-02T14:09:55.807+0000] {standard_task_runner.py:104} INFO - Running: ['airflow', 'tasks', 'run', 'keycloak_setup', 'create_user__nutrients__suhacb', 'manual__2026-04-02T14:09:49.414807+00:00', '--job-id', '61', '--raw', '--subdir', 'DAGS_FOLDER/keycloak/setup_keycloak.py', '--cfg-path', '/tmp/tmps5ajrrg1']
+[2026-04-02T14:09:55.838+0000] {standard_task_runner.py:105} INFO - Job 61: Subtask create_user__nutrients__suhacb
+[2026-04-02T14:09:55.831+0000] {logging_mixin.py:190} WARNING - /home/airflow/.local/lib/python3.12/site-packages/airflow/task/task_runner/standard_task_runner.py:70 DeprecationWarning: This process (pid=7284) is multi-threaded, use of fork() may lead to deadlocks in the child.
+[2026-04-02T14:09:55.849+0000] {standard_task_runner.py:72} INFO - Started process 7291 to run task
+[2026-04-02T14:09:56.204+0000] {task_command.py:467} INFO - Running <TaskInstance: keycloak_setup.create_user__nutrients__suhacb manual__2026-04-02T14:09:49.414807+00:00 [running]> on host 93ccef24966a
+[2026-04-02T14:09:56.537+0000] {taskinstance.py:3131} INFO - Exporting env vars: AIRFLOW_CTX_DAG_OWNER='airflow' AIRFLOW_CTX_DAG_ID='keycloak_setup' AIRFLOW_CTX_TASK_ID='create_user__nutrients__suhacb' AIRFLOW_CTX_EXECUTION_DATE='2026-04-02T14:09:49.414807+00:00' AIRFLOW_CTX_TRY_NUMBER='1' AIRFLOW_CTX_DAG_RUN_ID='manual__2026-04-02T14:09:49.414807+00:00'
+[2026-04-02T14:09:56.539+0000] {taskinstance.py:731} INFO - ::endgroup::
+[2026-04-02T14:09:56.752+0000] {crypto.py:82} WARNING - empty cryptography key - values will not be stored encrypted.
+[2026-04-02T14:09:57.267+0000] {logging_mixin.py:190} INFO - User 'suhacb' created in realm 'nutrients'.
+[2026-04-02T14:09:57.268+0000] {python.py:240} INFO - Done. Returned value was: None
+[2026-04-02T14:09:57.301+0000] {taskinstance.py:340} INFO - ::group::Post task execution logs
+[2026-04-02T14:09:57.303+0000] {taskinstance.py:352} INFO - Marking task as SUCCESS. dag_id=keycloak_setup, task_id=create_user__nutrients__suhacb, run_id=manual__2026-04-02T14:09:49.414807+00:00, execution_date=20260402T140949, start_date=20260402T140955, end_date=20260402T140957
+[2026-04-02T14:09:57.360+0000] {local_task_job_runner.py:266} INFO - Task exited with return code 0
+[2026-04-02T14:09:57.418+0000] {taskinstance.py:3900} INFO - 0 downstream tasks scheduled from follow-on schedule check
+[2026-04-02T14:09:57.421+0000] {local_task_job_runner.py:245} INFO - ::endgroup::

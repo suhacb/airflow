@@ -1,0 +1,20 @@
+[2026-04-02T13:01:47.647+0000] {local_task_job_runner.py:123} INFO - ::group::Pre task execution logs
+[2026-04-02T13:01:47.686+0000] {taskinstance.py:2612} INFO - Dependencies all met for dep_context=non-requeueable deps ti=<TaskInstance: keycloak_setup.create_realm__auth manual__2026-04-02T13:01:44.870301+00:00 [queued]>
+[2026-04-02T13:01:47.702+0000] {taskinstance.py:2612} INFO - Dependencies all met for dep_context=requeueable deps ti=<TaskInstance: keycloak_setup.create_realm__auth manual__2026-04-02T13:01:44.870301+00:00 [queued]>
+[2026-04-02T13:01:47.702+0000] {taskinstance.py:2865} INFO - Starting attempt 1 of 2
+[2026-04-02T13:01:47.729+0000] {taskinstance.py:2888} INFO - Executing <Task(PythonOperator): create_realm__auth> on 2026-04-02 13:01:44.870301+00:00
+[2026-04-02T13:01:47.746+0000] {standard_task_runner.py:104} INFO - Running: ['airflow', 'tasks', 'run', 'keycloak_setup', 'create_realm__auth', 'manual__2026-04-02T13:01:44.870301+00:00', '--job-id', '22', '--raw', '--subdir', 'DAGS_FOLDER/keycloak/setup_keycloak.py', '--cfg-path', '/tmp/tmpu9cnf7u_']
+[2026-04-02T13:01:47.752+0000] {standard_task_runner.py:105} INFO - Job 22: Subtask create_realm__auth
+[2026-04-02T13:01:47.752+0000] {logging_mixin.py:190} WARNING - /home/airflow/.local/lib/python3.12/site-packages/airflow/task/task_runner/standard_task_runner.py:70 DeprecationWarning: This process (pid=5816) is multi-threaded, use of fork() may lead to deadlocks in the child.
+[2026-04-02T13:01:47.753+0000] {standard_task_runner.py:72} INFO - Started process 5819 to run task
+[2026-04-02T13:01:47.841+0000] {task_command.py:467} INFO - Running <TaskInstance: keycloak_setup.create_realm__auth manual__2026-04-02T13:01:44.870301+00:00 [running]> on host 93ccef24966a
+[2026-04-02T13:01:48.012+0000] {taskinstance.py:3131} INFO - Exporting env vars: AIRFLOW_CTX_DAG_OWNER='airflow' AIRFLOW_CTX_DAG_ID='keycloak_setup' AIRFLOW_CTX_TASK_ID='create_realm__auth' AIRFLOW_CTX_EXECUTION_DATE='2026-04-02T13:01:44.870301+00:00' AIRFLOW_CTX_TRY_NUMBER='1' AIRFLOW_CTX_DAG_RUN_ID='manual__2026-04-02T13:01:44.870301+00:00'
+[2026-04-02T13:01:48.013+0000] {taskinstance.py:731} INFO - ::endgroup::
+[2026-04-02T13:01:48.158+0000] {crypto.py:82} WARNING - empty cryptography key - values will not be stored encrypted.
+[2026-04-02T13:01:50.788+0000] {logging_mixin.py:190} INFO - Realm 'auth' created.
+[2026-04-02T13:01:50.789+0000] {python.py:240} INFO - Done. Returned value was: None
+[2026-04-02T13:01:50.811+0000] {taskinstance.py:340} INFO - ::group::Post task execution logs
+[2026-04-02T13:01:50.812+0000] {taskinstance.py:352} INFO - Marking task as SUCCESS. dag_id=keycloak_setup, task_id=create_realm__auth, run_id=manual__2026-04-02T13:01:44.870301+00:00, execution_date=20260402T130144, start_date=20260402T130147, end_date=20260402T130150
+[2026-04-02T13:01:50.869+0000] {local_task_job_runner.py:266} INFO - Task exited with return code 0
+[2026-04-02T13:01:50.906+0000] {taskinstance.py:3900} INFO - 3 downstream tasks scheduled from follow-on schedule check
+[2026-04-02T13:01:50.910+0000] {local_task_job_runner.py:245} INFO - ::endgroup::
