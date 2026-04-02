@@ -5,3 +5,17 @@
 [2026-04-02T14:14:44.241+0000] {logging_mixin.py:190} INFO - [2026-04-02T14:14:44.240+0000] {dag.py:3239} INFO - Sync 1 DAGs
 [2026-04-02T14:14:44.254+0000] {logging_mixin.py:190} INFO - [2026-04-02T14:14:44.254+0000] {dag.py:4180} INFO - Setting next_dagrun for keycloak_setup to None, run_after=None
 [2026-04-02T14:14:44.291+0000] {processor.py:208} INFO - Processing /opt/airflow/dags/keycloak/setup_keycloak.py took 0.103 seconds
+[2026-04-02T14:15:14.504+0000] {processor.py:186} INFO - Started process (PID=7400) to work on /opt/airflow/dags/keycloak/setup_keycloak.py
+[2026-04-02T14:15:14.505+0000] {processor.py:914} INFO - Processing file /opt/airflow/dags/keycloak/setup_keycloak.py for tasks to queue
+[2026-04-02T14:15:14.506+0000] {logging_mixin.py:190} INFO - [2026-04-02T14:15:14.505+0000] {dagbag.py:588} INFO - Filling up the DagBag from /opt/airflow/dags/keycloak/setup_keycloak.py
+[2026-04-02T14:15:14.535+0000] {processor.py:925} INFO - DAG(s) 'keycloak_setup' retrieved from /opt/airflow/dags/keycloak/setup_keycloak.py
+[2026-04-02T14:15:14.554+0000] {logging_mixin.py:190} INFO - [2026-04-02T14:15:14.553+0000] {dag.py:3239} INFO - Sync 1 DAGs
+[2026-04-02T14:15:14.568+0000] {logging_mixin.py:190} INFO - [2026-04-02T14:15:14.567+0000] {dag.py:4180} INFO - Setting next_dagrun for keycloak_setup to None, run_after=None
+[2026-04-02T14:15:14.590+0000] {processor.py:208} INFO - Processing /opt/airflow/dags/keycloak/setup_keycloak.py took 0.091 seconds
+[2026-04-02T14:15:44.813+0000] {processor.py:186} INFO - Started process (PID=7410) to work on /opt/airflow/dags/keycloak/setup_keycloak.py
+[2026-04-02T14:15:44.831+0000] {processor.py:914} INFO - Processing file /opt/airflow/dags/keycloak/setup_keycloak.py for tasks to queue
+[2026-04-02T14:15:44.832+0000] {logging_mixin.py:190} INFO - [2026-04-02T14:15:44.831+0000] {dagbag.py:588} INFO - Filling up the DagBag from /opt/airflow/dags/keycloak/setup_keycloak.py
+[2026-04-02T14:15:44.858+0000] {processor.py:925} INFO - DAG(s) 'keycloak_setup' retrieved from /opt/airflow/dags/keycloak/setup_keycloak.py
+[2026-04-02T14:15:44.874+0000] {logging_mixin.py:190} INFO - [2026-04-02T14:15:44.874+0000] {dag.py:3239} INFO - Sync 1 DAGs
+[2026-04-02T14:15:44.888+0000] {logging_mixin.py:190} INFO - [2026-04-02T14:15:44.887+0000] {dag.py:4180} INFO - Setting next_dagrun for keycloak_setup to None, run_after=None
+[2026-04-02T14:15:44.904+0000] {processor.py:208} INFO - Processing /opt/airflow/dags/keycloak/setup_keycloak.py took 0.096 seconds
