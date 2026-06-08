@@ -44,6 +44,22 @@ REALMS = [
             "redirectUris": ["http://localhost:9010/*"],
         },
     },
+    {
+        "name": "princess",
+        "users": [
+            {"username": "test", "email": "test@suhac.eu", "password": "developer",
+             "firstName": "Test", "lastName": "User"},
+            {"username": "suhacb", "email": "blaz@suhac.eu", "password": "!2ndArmored",
+             "firstName": "Blaz", "lastName": "Suhac"},
+        ],
+        "client": {
+            "clientId":    "princess-client",
+            "name":        "Princess Client",
+            "description": "Client for the Princess service",
+            "publicClient": False,
+            "redirectUris": ["http://localhost:10100/*"],
+        },
+    },
 ]
 
 # ── TOKEN HELPERS ─────────────────────────────────────────────────────────────
@@ -150,6 +166,9 @@ def task_create_realm(realm_name: str, **ctx):
         headers=headers,
         json=payload,
     )
+    if resp.status_code == 409:
+        print(f"Realm '{realm_name}' already exists (409) — skipping.")
+        return
     resp.raise_for_status()
     print(f"Realm '{realm_name}' created.")
 
@@ -158,11 +177,11 @@ def task_create_user(realm_name: str, user: dict, **ctx):
     headers = _auth_headers()
     base    = f"{KEYCLOAK_URL}/admin/realms/{realm_name}/users"
 
-    # Check if user already exists
+    # Check if user already exists — use exact=true to avoid prefix matches
     search = requests.get(base, headers=headers,
-                          params={"username": user["username"]})
+                          params={"username": user["username"], "exact": "true"})
     search.raise_for_status()
-    if search.json():
+    if any(u["username"] == user["username"] for u in search.json()):
         print(f"User '{user['username']}' already exists in '{realm_name}' — skipping.")
         return
 
@@ -181,6 +200,9 @@ def task_create_user(realm_name: str, user: dict, **ctx):
     }
 
     resp = requests.post(base, headers=headers, json=payload)
+    if resp.status_code == 409:
+        print(f"User '{user['username']}' already exists in '{realm_name}' (409) — skipping.")
+        return
     resp.raise_for_status()
     print(f"User '{user['username']}' created in realm '{realm_name}'.")
 
@@ -189,11 +211,11 @@ def task_create_client(realm_name: str, client_cfg: dict, **ctx):
     headers = _auth_headers()
     base    = f"{KEYCLOAK_URL}/admin/realms/{realm_name}/clients"
 
-    # Check if client already exists
+    # Check if client already exists — filter for exact clientId match
     existing = requests.get(base, headers=headers,
                             params={"clientId": client_cfg["clientId"]})
     existing.raise_for_status()
-    if existing.json():
+    if any(c["clientId"] == client_cfg["clientId"] for c in existing.json()):
         print(f"Client '{client_cfg['clientId']}' already exists in '{realm_name}' — skipping.")
         return
 
@@ -206,6 +228,9 @@ def task_create_client(realm_name: str, client_cfg: dict, **ctx):
         "serviceAccountsEnabled":      False,  # Client Credentials flow
     })
 
+    if resp.status_code == 409:
+        print(f"Client '{client_cfg['clientId']}' already exists in '{realm_name}' (409) — skipping.")
+        return
     resp.raise_for_status()
     print(f"Client '{client_cfg['clientId']}' created in realm '{realm_name}'.")
 
