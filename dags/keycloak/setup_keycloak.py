@@ -46,11 +46,40 @@ REALMS = [
     },
     {
         "name": "princess",
+        "roles": [
+            "executive", "senior_user", "senior_supplier", "project_manager",
+            "project_assurance", "project_support", "change_authority",
+            "team_manager", "team_member", "observer",
+        ],
+        "groups": ["customer", "supplier", "neutral"],
+        "client_mappers": [
+            {
+                "name": "groups",
+                "protocol": "openid-connect",
+                "protocolMapper": "oidc-group-membership-mapper",
+                "consentRequired": False,
+                "config": {
+                    "claim.name":         "groups",
+                    "full.path":          "true",
+                    "id.token.claim":     "false",
+                    "access.token.claim": "true",
+                    "userinfo.token.claim": "false",
+                },
+            },
+        ],
         "users": [
-            {"username": "test", "email": "test@suhac.eu", "password": "developer",
-             "firstName": "Test", "lastName": "User"},
-            {"username": "suhacb", "email": "blaz@suhac.eu", "password": "!2ndArmored",
-             "firstName": "Blaz", "lastName": "Suhac"},
+            {"username": "suhacb",          "email": "blaz@suhac.eu",                   "password": "!2ndArmored", "firstName": "Blaz",    "lastName": "Suhac"},
+            {"username": "pm_customer",     "email": "pm_customer@princess.local",     "password": "developer",   "firstName": "PM",      "lastName": "Customer",   "role": "project_manager",   "group": "customer"},
+            {"username": "pm_supplier",     "email": "pm_supplier@princess.local",     "password": "developer",   "firstName": "PM",      "lastName": "Supplier",   "role": "project_manager",   "group": "supplier"},
+            {"username": "executive",       "email": "executive@princess.local",       "password": "developer",   "firstName": "Executive","lastName": "User",       "role": "executive",         "group": "customer"},
+            {"username": "senior_user",     "email": "senior_user@princess.local",     "password": "developer",   "firstName": "Senior",  "lastName": "User",       "role": "senior_user",       "group": "customer"},
+            {"username": "senior_supplier", "email": "senior_supplier@princess.local", "password": "developer",   "firstName": "Senior",  "lastName": "Supplier",   "role": "senior_supplier",   "group": "supplier"},
+            {"username": "proj_assurance",  "email": "proj_assurance@princess.local",  "password": "developer",   "firstName": "Project", "lastName": "Assurance",  "role": "project_assurance", "group": "customer"},
+            {"username": "proj_support",    "email": "proj_support@princess.local",    "password": "developer",   "firstName": "Project", "lastName": "Support",    "role": "project_support",   "group": "customer"},
+            {"username": "change_auth",     "email": "change_auth@princess.local",     "password": "developer",   "firstName": "Change",  "lastName": "Authority",  "role": "change_authority",  "group": "customer"},
+            {"username": "team_mgr",        "email": "team_mgr@princess.local",        "password": "developer",   "firstName": "Team",    "lastName": "Manager",    "role": "team_manager",      "group": "supplier"},
+            {"username": "team_member",     "email": "team_member@princess.local",     "password": "developer",   "firstName": "Team",    "lastName": "Member",     "role": "team_member",       "group": "supplier"},
+            {"username": "observer",        "email": "observer@princess.local",        "password": "developer",   "firstName": "Observer","lastName": "User",       "role": "observer",          "group": "neutral"},
         ],
         "client": {
             "clientId":    "princess-client",
@@ -234,6 +263,153 @@ def task_create_client(realm_name: str, client_cfg: dict, **ctx):
     resp.raise_for_status()
     print(f"Client '{client_cfg['clientId']}' created in realm '{realm_name}'.")
 
+def task_create_realm_role(realm_name: str, role_name: str, **ctx):
+    headers = _auth_headers()
+    base = f"{KEYCLOAK_URL}/admin/realms/{realm_name}/roles"
+
+    existing = requests.get(f"{base}/{role_name}", headers=headers)
+    if existing.status_code == 200:
+        print(f"Role '{role_name}' already exists in '{realm_name}' — skipping.")
+        return
+
+    resp = requests.post(base, headers=headers, json={"name": role_name})
+    if resp.status_code == 409:
+        print(f"Role '{role_name}' already exists in '{realm_name}' (409) — skipping.")
+        return
+    resp.raise_for_status()
+    print(f"Role '{role_name}' created in realm '{realm_name}'.")
+
+
+def task_create_group(realm_name: str, group_name: str, **ctx):
+    headers = _auth_headers()
+    base = f"{KEYCLOAK_URL}/admin/realms/{realm_name}/groups"
+
+    existing = requests.get(base, headers=headers, params={"search": group_name, "exact": "true"})
+    existing.raise_for_status()
+    if any(g["name"] == group_name for g in existing.json()):
+        print(f"Group '{group_name}' already exists in '{realm_name}' — skipping.")
+        return
+
+    resp = requests.post(base, headers=headers, json={"name": group_name})
+    if resp.status_code == 409:
+        print(f"Group '{group_name}' already exists in '{realm_name}' (409) — skipping.")
+        return
+    resp.raise_for_status()
+    print(f"Group '{group_name}' created in realm '{realm_name}'.")
+
+
+def task_create_client_mapper(realm_name: str, client_id: str, mapper_cfg: dict, **ctx):
+    headers = _auth_headers()
+
+    clients_resp = requests.get(
+        f"{KEYCLOAK_URL}/admin/realms/{realm_name}/clients",
+        headers=headers,
+        params={"clientId": client_id},
+    )
+    clients_resp.raise_for_status()
+    match = next((c for c in clients_resp.json() if c["clientId"] == client_id), None)
+    if not match:
+        raise ValueError(f"Client '{client_id}' not found in realm '{realm_name}'")
+    client_uuid = match["id"]
+
+    mappers_resp = requests.get(
+        f"{KEYCLOAK_URL}/admin/realms/{realm_name}/clients/{client_uuid}/protocol-mappers/models",
+        headers=headers,
+    )
+    mappers_resp.raise_for_status()
+    if any(m["name"] == mapper_cfg["name"] for m in mappers_resp.json()):
+        print(f"Mapper '{mapper_cfg['name']}' already exists on '{client_id}' — skipping.")
+        return
+
+    resp = requests.post(
+        f"{KEYCLOAK_URL}/admin/realms/{realm_name}/clients/{client_uuid}/protocol-mappers/models",
+        headers=headers,
+        json=mapper_cfg,
+    )
+    if resp.status_code == 409:
+        print(f"Mapper '{mapper_cfg['name']}' already exists on '{client_id}' (409) — skipping.")
+        return
+    resp.raise_for_status()
+    print(f"Mapper '{mapper_cfg['name']}' created on client '{client_id}'.")
+
+
+def task_assign_user_role(realm_name: str, username: str, role_name: str, **ctx):
+    headers = _auth_headers()
+
+    users_resp = requests.get(
+        f"{KEYCLOAK_URL}/admin/realms/{realm_name}/users",
+        headers=headers,
+        params={"username": username, "exact": "true"},
+    )
+    users_resp.raise_for_status()
+    user = next((u for u in users_resp.json() if u["username"] == username), None)
+    if not user:
+        raise ValueError(f"User '{username}' not found in realm '{realm_name}'")
+
+    role_resp = requests.get(
+        f"{KEYCLOAK_URL}/admin/realms/{realm_name}/roles/{role_name}",
+        headers=headers,
+    )
+    role_resp.raise_for_status()
+
+    assigned_resp = requests.get(
+        f"{KEYCLOAK_URL}/admin/realms/{realm_name}/users/{user['id']}/role-mappings/realm",
+        headers=headers,
+    )
+    assigned_resp.raise_for_status()
+    if any(r["name"] == role_name for r in assigned_resp.json()):
+        print(f"Role '{role_name}' already assigned to '{username}' — skipping.")
+        return
+
+    resp = requests.post(
+        f"{KEYCLOAK_URL}/admin/realms/{realm_name}/users/{user['id']}/role-mappings/realm",
+        headers=headers,
+        json=[role_resp.json()],
+    )
+    resp.raise_for_status()
+    print(f"Role '{role_name}' assigned to '{username}' in '{realm_name}'.")
+
+
+def task_assign_user_group(realm_name: str, username: str, group_name: str, **ctx):
+    headers = _auth_headers()
+
+    users_resp = requests.get(
+        f"{KEYCLOAK_URL}/admin/realms/{realm_name}/users",
+        headers=headers,
+        params={"username": username, "exact": "true"},
+    )
+    users_resp.raise_for_status()
+    user = next((u for u in users_resp.json() if u["username"] == username), None)
+    if not user:
+        raise ValueError(f"User '{username}' not found in realm '{realm_name}'")
+
+    groups_resp = requests.get(
+        f"{KEYCLOAK_URL}/admin/realms/{realm_name}/groups",
+        headers=headers,
+        params={"search": group_name, "exact": "true"},
+    )
+    groups_resp.raise_for_status()
+    group = next((g for g in groups_resp.json() if g["name"] == group_name), None)
+    if not group:
+        raise ValueError(f"Group '{group_name}' not found in realm '{realm_name}'")
+
+    user_groups_resp = requests.get(
+        f"{KEYCLOAK_URL}/admin/realms/{realm_name}/users/{user['id']}/groups",
+        headers=headers,
+    )
+    user_groups_resp.raise_for_status()
+    if any(g["id"] == group["id"] for g in user_groups_resp.json()):
+        print(f"User '{username}' already in group '{group_name}' — skipping.")
+        return
+
+    resp = requests.put(
+        f"{KEYCLOAK_URL}/admin/realms/{realm_name}/users/{user['id']}/groups/{group['id']}",
+        headers=headers,
+    )
+    resp.raise_for_status()
+    print(f"User '{username}' added to group '{group_name}' in '{realm_name}'.")
+
+
 # ── DAG DEFINITION ────────────────────────────────────────────────────────────
 
 with DAG(
@@ -254,9 +430,12 @@ with DAG(
     )
 
     for realm_cfg in REALMS:
-        realm_name  = realm_cfg["name"]
-        realm_users = realm_cfg["users"]
-        realm_client = realm_cfg["client"]
+        realm_name           = realm_cfg["name"]
+        realm_users          = realm_cfg["users"]
+        realm_client         = realm_cfg["client"]
+        realm_roles          = realm_cfg.get("roles", [])
+        realm_groups         = realm_cfg.get("groups", [])
+        realm_client_mappers = realm_cfg.get("client_mappers", [])
 
         create_realm = PythonOperator(
             task_id=f"create_realm__{realm_name}",
@@ -264,14 +443,34 @@ with DAG(
             op_kwargs={"realm_name": realm_name},
         )
 
-        user_tasks = [
+        role_tasks = [
             PythonOperator(
+                task_id=f"create_role__{realm_name}__{role}",
+                python_callable=task_create_realm_role,
+                op_kwargs={"realm_name": realm_name, "role_name": role},
+            )
+            for role in realm_roles
+        ]
+
+        group_tasks = [
+            PythonOperator(
+                task_id=f"create_group__{realm_name}__{group}",
+                python_callable=task_create_group,
+                op_kwargs={"realm_name": realm_name, "group_name": group},
+            )
+            for group in realm_groups
+        ]
+
+        user_task_map = {}
+        user_tasks = []
+        for u in realm_users:
+            t = PythonOperator(
                 task_id=f"create_user__{realm_name}__{u['username']}",
                 python_callable=task_create_user,
                 op_kwargs={"realm_name": realm_name, "user": u},
             )
-            for u in realm_users
-        ]
+            user_tasks.append(t)
+            user_task_map[u["username"]] = t
 
         create_client = PythonOperator(
             task_id=f"create_client__{realm_name}",
@@ -279,6 +478,40 @@ with DAG(
             op_kwargs={"realm_name": realm_name, "client_cfg": realm_client},
         )
 
-        # obtain_token → create_realm → [users + client] in parallel
+        mapper_tasks = [
+            PythonOperator(
+                task_id=f"create_mapper__{realm_name}__{m['name']}",
+                python_callable=task_create_client_mapper,
+                op_kwargs={
+                    "realm_name": realm_name,
+                    "client_id":  realm_client["clientId"],
+                    "mapper_cfg": m,
+                },
+            )
+            for m in realm_client_mappers
+        ]
+
+        # obtain_token → create_realm → [roles, groups, users, client] in parallel
+        obtain_token >> create_realm >> role_tasks
+        obtain_token >> create_realm >> group_tasks
         obtain_token >> create_realm >> user_tasks
         obtain_token >> create_realm >> create_client
+        create_client >> mapper_tasks
+
+        # Role/group assignment — requires both the user and the role/group to exist
+        for u in realm_users:
+            user_task = user_task_map[u["username"]]
+            if "role" in u:
+                assign_role = PythonOperator(
+                    task_id=f"assign_role__{realm_name}__{u['username']}",
+                    python_callable=task_assign_user_role,
+                    op_kwargs={"realm_name": realm_name, "username": u["username"], "role_name": u["role"]},
+                )
+                [user_task, *role_tasks] >> assign_role
+            if "group" in u:
+                assign_group = PythonOperator(
+                    task_id=f"assign_group__{realm_name}__{u['username']}",
+                    python_callable=task_assign_user_group,
+                    op_kwargs={"realm_name": realm_name, "username": u["username"], "group_name": u["group"]},
+                )
+                [user_task, *group_tasks] >> assign_group
