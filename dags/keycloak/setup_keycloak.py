@@ -21,11 +21,13 @@ REALMS = [
              "firstName": "Blaz", "lastName": "Suhac"},
         ],
         "client": {
-            "clientId":    "auth-client",
-            "name":        "Auth Client",
-            "description": "Client for the Auth service",
-            "publicClient": False,
-            "redirectUris": ["http://localhost:9020/*"],
+            "clientId":                  "auth-client",
+            "name":                      "Auth Client",
+            "description":               "Client for the Auth service",
+            "publicClient":              False,
+            "standardFlowEnabled":       False,
+            "directAccessGrantsEnabled": True,
+            "redirectUris":              ["http://localhost:9020/*"],
         },
     },
     {
@@ -37,11 +39,13 @@ REALMS = [
              "firstName": "Blaz", "lastName": "Suhac"},
         ],
         "client": {
-            "clientId":    "nutrients-client",
-            "name":        "Nutrients Client",
-            "description": "Client for the Nutrients service",
-            "publicClient": False,
-            "redirectUris": ["http://localhost:9010/*"],
+            "clientId":                  "nutrients-client",
+            "name":                      "Nutrients Client",
+            "description":               "Client for the Nutrients service",
+            "publicClient":              False,
+            "standardFlowEnabled":       False,
+            "directAccessGrantsEnabled": True,
+            "redirectUris":              ["http://localhost:9010/*"],
         },
     },
     {
@@ -61,12 +65,68 @@ REALMS = [
             {"username": "observer",        "email": "observer@princess.local",        "password": "developer",   "firstName": "Nathan",    "lastName": "Okafor"},
         ],
         "client": {
-            "clientId":    "princess-client",
-            "name":        "Princess Client",
-            "description": "Client for the Princess service",
-            "publicClient": False,
-            "redirectUris": ["http://localhost:10100/*"],
+            "clientId":                  "princess-client",
+            "name":                      "Princess Client",
+            "description":               "Client for the Princess service",
+            "publicClient":              False,
+            "standardFlowEnabled":       False,
+            "directAccessGrantsEnabled": True,
+            "redirectUris":              ["http://localhost:10100/*"],
         },
+    },
+    {
+        "name": "ens3",
+        "users": [
+            {"username": "blaz.suhac",    "email": "blaz@suhac.eu",               "password": "developer", "firstName": "Blaž",   "lastName": "Suhač"},
+            {"username": "ana.kovac",     "email": "ana.kovac@ens3.local",         "password": "developer", "firstName": "Ana",    "lastName": "Kovač"},
+            {"username": "boris.novak",   "email": "boris.novak@ens3.local",       "password": "developer", "firstName": "Boris",  "lastName": "Novak"},
+            {"username": "cvetka.vidmar", "email": "cvetka.vidmar@ens3.local",     "password": "developer", "firstName": "Cvetka", "lastName": "Vidmar"},
+            {"username": "darko.zorman",  "email": "darko.zorman@ens3.local",      "password": "developer", "firstName": "Darko",  "lastName": "Zorman"},
+        ],
+        "groups": ["tajniki", "predsedniki", "svetniki", "opazovalci"],
+        "user_groups": [
+            {"username": "blaz.suhac",    "group": "tajniki"},
+            {"username": "blaz.suhac",    "group": "predsedniki"},
+            {"username": "ana.kovac",     "group": "tajniki"},
+            {"username": "boris.novak",   "group": "predsedniki"},
+            {"username": "cvetka.vidmar", "group": "svetniki"},
+            {"username": "darko.zorman",  "group": "opazovalci"},
+        ],
+        "client": {
+            "clientId":                  "ens3-app",
+            "name":                      "ENS3 App",
+            "description":               "ENS3 meeting management application",
+            "publicClient":              False,
+            "standardFlowEnabled":       True,
+            "implicitFlowEnabled":       False,
+            "directAccessGrantsEnabled": True,
+            "serviceAccountsEnabled":    False,
+            "redirectUris": [
+                "http://localhost:40000/*",
+                "http://localhost:40001/*",
+            ],
+            "webOrigins": [
+                "http://localhost:40000",
+                "http://localhost:40001",
+            ],
+            "attributes": {
+                "pkce.code.challenge.method": "S256",
+            },
+        },
+        "client_mappers": [
+            {
+                "name":           "groups",
+                "protocol":       "openid-connect",
+                "protocolMapper": "oidc-group-membership-mapper",
+                "config": {
+                    "claim.name":           "groups",
+                    "full.path":            "false",
+                    "id.token.claim":       "true",
+                    "access.token.claim":   "true",
+                    "userinfo.token.claim": "true",
+                },
+            },
+        ],
     },
 ]
 
@@ -231,14 +291,7 @@ def task_create_client(realm_name: str, client_cfg: dict, **ctx):
         print(f"Client '{client_cfg['clientId']}' already exists in '{realm_name}' — skipping.")
         return
 
-    resp = requests.post(base, headers=headers, json={
-        **client_cfg,
-        # Auth flows — enable only Direct Access Grants
-        "standardFlowEnabled":         False,  # Authorization Code flow
-        "implicitFlowEnabled":         False,  # Implicit flow
-        "directAccessGrantsEnabled":   True,   # Direct Access Grants ✓
-        "serviceAccountsEnabled":      False,  # Client Credentials flow
-    })
+    resp = requests.post(base, headers=headers, json=client_cfg)
 
     if resp.status_code == 409:
         print(f"Client '{client_cfg['clientId']}' already exists in '{realm_name}' (409) — skipping.")
@@ -281,6 +334,55 @@ def task_create_client_mapper(realm_name: str, client_id: str, mapper_cfg: dict,
     print(f"Mapper '{mapper_cfg['name']}' created on client '{client_id}'.")
 
 
+def task_create_group(realm_name: str, group_name: str, **ctx):
+    headers = _auth_headers()
+    base = f"{KEYCLOAK_URL}/admin/realms/{realm_name}/groups"
+
+    existing = requests.get(base, headers=headers)
+    existing.raise_for_status()
+    if any(g["name"] == group_name for g in existing.json()):
+        print(f"Group '{group_name}' already exists in '{realm_name}' — skipping.")
+        return
+
+    resp = requests.post(base, headers=headers, json={"name": group_name})
+    if resp.status_code == 409:
+        print(f"Group '{group_name}' already exists in '{realm_name}' (409) — skipping.")
+        return
+    resp.raise_for_status()
+    print(f"Group '{group_name}' created in realm '{realm_name}'.")
+
+
+def task_assign_user_to_group(realm_name: str, username: str, group_name: str, **ctx):
+    headers = _auth_headers()
+    base = f"{KEYCLOAK_URL}/admin/realms/{realm_name}"
+
+    users_resp = requests.get(f"{base}/users",
+                              headers=headers,
+                              params={"username": username, "exact": "true"})
+    users_resp.raise_for_status()
+    user = next((u for u in users_resp.json() if u["username"] == username), None)
+    if not user:
+        raise ValueError(f"User '{username}' not found in realm '{realm_name}'")
+    user_id = user["id"]
+
+    groups_resp = requests.get(f"{base}/groups", headers=headers)
+    groups_resp.raise_for_status()
+    group = next((g for g in groups_resp.json() if g["name"] == group_name), None)
+    if not group:
+        raise ValueError(f"Group '{group_name}' not found in realm '{realm_name}'")
+    group_id = group["id"]
+
+    member_resp = requests.get(f"{base}/users/{user_id}/groups", headers=headers)
+    member_resp.raise_for_status()
+    if any(g["id"] == group_id for g in member_resp.json()):
+        print(f"User '{username}' already in group '{group_name}' — skipping.")
+        return
+
+    resp = requests.put(f"{base}/users/{user_id}/groups/{group_id}", headers=headers)
+    resp.raise_for_status()
+    print(f"User '{username}' assigned to group '{group_name}' in realm '{realm_name}'.")
+
+
 # ── DAG DEFINITION ────────────────────────────────────────────────────────────
 
 with DAG(
@@ -303,6 +405,8 @@ with DAG(
     for realm_cfg in REALMS:
         realm_name           = realm_cfg["name"]
         realm_users          = realm_cfg["users"]
+        realm_groups         = realm_cfg.get("groups", [])
+        realm_user_groups    = realm_cfg.get("user_groups", [])
         realm_client         = realm_cfg["client"]
         realm_client_mappers = realm_cfg.get("client_mappers", [])
 
@@ -323,6 +427,17 @@ with DAG(
             user_tasks.append(t)
             user_task_map[u["username"]] = t
 
+        group_task_map = {}
+        group_tasks = []
+        for g in realm_groups:
+            t = PythonOperator(
+                task_id=f"create_group__{realm_name}__{g}",
+                python_callable=task_create_group,
+                op_kwargs={"realm_name": realm_name, "group_name": g},
+            )
+            group_tasks.append(t)
+            group_task_map[g] = t
+
         create_client = PythonOperator(
             task_id=f"create_client__{realm_name}",
             python_callable=task_create_client,
@@ -342,7 +457,22 @@ with DAG(
             for m in realm_client_mappers
         ]
 
-        # obtain_token → create_realm → [users, client] in parallel
+        assign_tasks = []
+        for ug in realm_user_groups:
+            t = PythonOperator(
+                task_id=f"assign_group__{realm_name}__{ug['username']}__{ug['group']}",
+                python_callable=task_assign_user_to_group,
+                op_kwargs={
+                    "realm_name": realm_name,
+                    "username":   ug["username"],
+                    "group_name": ug["group"],
+                },
+            )
+            user_task_map[ug["username"]] >> t
+            group_task_map[ug["group"]]   >> t
+            assign_tasks.append(t)
+
         obtain_token >> create_realm >> user_tasks
+        obtain_token >> create_realm >> group_tasks
         obtain_token >> create_realm >> create_client
         create_client >> mapper_tasks
