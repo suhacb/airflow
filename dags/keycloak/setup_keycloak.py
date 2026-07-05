@@ -127,6 +127,26 @@ REALMS = [
                 },
             },
         ],
+        "service_account_clients": [
+            {
+                "clientId":                     "ens3-admin-sync",
+                "name":                          "ENS3 Admin Sync",
+                "description":                   "Service account client for ENS3 identity sync (read-only Keycloak Admin API access)",
+                "protocol":                      "openid-connect",
+                "publicClient":                  False,
+                "standardFlowEnabled":           False,
+                "implicitFlowEnabled":           False,
+                "directAccessGrantsEnabled":     False,
+                "serviceAccountsEnabled":        True,
+                "authorizationServicesEnabled":  False,
+                "redirectUris":                  [],
+                "webOrigins":                    [],
+                "service_account_roles": {
+                    "client_id": "realm-management",
+                    "roles":     ["view-users", "query-users", "query-groups"],
+                },
+            },
+        ],
     },
 ]
 
@@ -334,6 +354,64 @@ def task_create_client_mapper(realm_name: str, client_id: str, mapper_cfg: dict,
     print(f"Mapper '{mapper_cfg['name']}' created on client '{client_id}'.")
 
 
+def _get_client_uuid(realm_name: str, client_id: str, headers: dict) -> str:
+    resp = requests.get(
+        f"{KEYCLOAK_URL}/admin/realms/{realm_name}/clients",
+        headers=headers,
+        params={"clientId": client_id},
+    )
+    resp.raise_for_status()
+    match = next((c for c in resp.json() if c["clientId"] == client_id), None)
+    if not match:
+        raise ValueError(f"Client '{client_id}' not found in realm '{realm_name}'")
+    return match["id"]
+
+
+def task_assign_service_account_roles(realm_name: str, client_id: str, role_cfg: dict, **ctx):
+    """Assign client roles (e.g. from realm-management) to a client's service account user."""
+    headers = _auth_headers()
+    base = f"{KEYCLOAK_URL}/admin/realms/{realm_name}"
+
+    client_uuid = _get_client_uuid(realm_name, client_id, headers)
+
+    sa_user_resp = requests.get(f"{base}/clients/{client_uuid}/service-account-user", headers=headers)
+    sa_user_resp.raise_for_status()
+    sa_user_id = sa_user_resp.json()["id"]
+
+    role_client_uuid = _get_client_uuid(realm_name, role_cfg["client_id"], headers)
+
+    existing_resp = requests.get(
+        f"{base}/users/{sa_user_id}/role-mappings/clients/{role_client_uuid}",
+        headers=headers,
+    )
+    existing_resp.raise_for_status()
+    existing_role_names = {r["name"] for r in existing_resp.json()}
+
+    roles_to_assign = []
+    for role_name in role_cfg["roles"]:
+        if role_name in existing_role_names:
+            print(f"Service account of '{client_id}' already has role '{role_name}' — skipping.")
+            continue
+        role_resp = requests.get(
+            f"{base}/clients/{role_client_uuid}/roles/{role_name}",
+            headers=headers,
+        )
+        role_resp.raise_for_status()
+        roles_to_assign.append(role_resp.json())
+
+    if not roles_to_assign:
+        return
+
+    resp = requests.post(
+        f"{base}/users/{sa_user_id}/role-mappings/clients/{role_client_uuid}",
+        headers=headers,
+        json=roles_to_assign,
+    )
+    resp.raise_for_status()
+    assigned = [r["name"] for r in roles_to_assign]
+    print(f"Assigned roles {assigned} from '{role_cfg['client_id']}' to service account of '{client_id}'.")
+
+
 def task_create_group(realm_name: str, group_name: str, **ctx):
     headers = _auth_headers()
     base = f"{KEYCLOAK_URL}/admin/realms/{realm_name}/groups"
@@ -409,6 +487,7 @@ with DAG(
         realm_user_groups    = realm_cfg.get("user_groups", [])
         realm_client         = realm_cfg["client"]
         realm_client_mappers = realm_cfg.get("client_mappers", [])
+        realm_sa_clients     = realm_cfg.get("service_account_clients", [])
 
         create_realm = PythonOperator(
             task_id=f"create_realm__{realm_name}",
@@ -457,6 +536,28 @@ with DAG(
             for m in realm_client_mappers
         ]
 
+        sa_client_tasks = []
+        for sa_cfg in realm_sa_clients:
+            sa_role_cfg = sa_cfg["service_account_roles"]
+            sa_client_cfg = {k: v for k, v in sa_cfg.items() if k != "service_account_roles"}
+
+            create_sa_client = PythonOperator(
+                task_id=f"create_client__{realm_name}__{sa_cfg['clientId']}",
+                python_callable=task_create_client,
+                op_kwargs={"realm_name": realm_name, "client_cfg": sa_client_cfg},
+            )
+            assign_sa_roles = PythonOperator(
+                task_id=f"assign_sa_roles__{realm_name}__{sa_cfg['clientId']}",
+                python_callable=task_assign_service_account_roles,
+                op_kwargs={
+                    "realm_name": realm_name,
+                    "client_id":  sa_cfg["clientId"],
+                    "role_cfg":   sa_role_cfg,
+                },
+            )
+            create_sa_client >> assign_sa_roles
+            sa_client_tasks.append(create_sa_client)
+
         assign_tasks = []
         for ug in realm_user_groups:
             t = PythonOperator(
@@ -476,3 +577,4 @@ with DAG(
         obtain_token >> create_realm >> group_tasks
         obtain_token >> create_realm >> create_client
         create_client >> mapper_tasks
+        obtain_token >> create_realm >> sa_client_tasks
